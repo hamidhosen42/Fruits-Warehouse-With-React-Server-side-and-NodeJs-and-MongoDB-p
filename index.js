@@ -11,9 +11,7 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-
-function verifyJWT(req, res, next) 
-{
+function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -32,9 +30,8 @@ function verifyJWT(req, res, next)
   });
 }
 
-
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.1geox.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
-
+const uri =
+  "mongodb+srv://hamid42:7JwG2D8fNJNdprtm@cluster0.1geox.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
 const client = new MongoClient(uri, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -44,8 +41,8 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    const serviceCollection = client.db("geniusCar").collection("service");
-    const orderCollection = client.db("geniusCar").collection("order");
+    const serviceCollection = client.db("fruits").collection("service");
+    const orderCollection = client.db("fruits").collection("order");
 
     // AUTH
     //require('crypto').randomBytes(64).toString('hex')
@@ -58,7 +55,7 @@ async function run() {
     });
 
     //load data multiple SERVICES API
-    app.get("/service", async (req, res) => {
+    app.get("/inventory", async (req, res) => {
       const query = {};
       const cursor = serviceCollection.find(query);
       const service = await cursor.toArray();
@@ -89,25 +86,24 @@ async function run() {
     });
 
     // Order Collection API
-        app.get("/order", verifyJWT, async (req, res) => {
-          const decodedEmail = req.decoded.email;
-          const email = req.query.email;
-          if (email === decodedEmail) {
-            const query = { email: email };
-            const cursor = orderCollection.find(query);
-            const orders = await cursor.toArray();
-            res.send(orders);
-          } else {
-            res.status(403).send({ message: "forbidden access" });
-          }
-        });
+    app.get("/order", verifyJWT, async (req, res) => {
+      const decodedEmail = req.decoded.email;
+      const email = req.query.email;
+      if (email === decodedEmail) {
+        const query = { email: email };
+        const cursor = orderCollection.find(query);
+        const orders = await cursor.toArray();
+        res.send(orders);
+      } else {
+        res.status(403).send({ message: "forbidden access" });
+      }
+    });
 
     app.post("/order", async (req, res) => {
       const order = req.body;
       const result = await orderCollection.insertOne(order);
       res.send(result);
     });
-
   } finally {
   }
 }
@@ -116,11 +112,7 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-  res.send("Running Genius Server");
-});
-
-app.get("/hero", (req, res) => {
-  res.send("Hero meets hero ku");
+  res.send("Running Fruits Server");
 });
 
 app.listen(port, () => {
