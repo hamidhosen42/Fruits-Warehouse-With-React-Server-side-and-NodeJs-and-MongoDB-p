@@ -11,25 +11,6 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-function verifyJWT(req, res, next) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).send({ message: "unauthorized access" });
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-    if (err) {
-      return res.status(403).send({ message: "Forbidden access" });
-    }
-    console.log("decoded", decoded);
-    req.decoded = decoded;
-    next();
-  });
-}
-
 const uri =
   "mongodb+srv://hamid42:7JwG2D8fNJNdprtm@cluster0.1geox.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
 const client = new MongoClient(uri, {
@@ -42,7 +23,6 @@ async function run() {
   try {
     await client.connect();
     const serviceCollection = client.db("fruits").collection("service");
-    const orderCollection = client.db("fruits").collection("order");
 
     // AUTH
     //require('crypto').randomBytes(64).toString('hex')
@@ -54,54 +34,118 @@ async function run() {
       res.send({ accessToken });
     });
 
-    //load data multiple SERVICES API
+    //load data inventory API-----
     app.get("/inventory", async (req, res) => {
       const query = {};
       const cursor = serviceCollection.find(query);
-      const service = await cursor.toArray();
+      const service = await cursor.limit(6).toArray();
       res.send(service);
     });
 
-    //load data single---get means data load
-    app.get("/service/:id", async (req, res) => {
+    // update item
+    app.put("/updateitem/:id", async (req, res) => {
+      const id = req.params.id;
+      const updateUser = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          name: updateUser.name,
+          suplierName: updateUser.suplierName,
+          price: updateUser.price,
+          quantity: updateUser.quantity,
+          img: updateUser.img,
+          description: updateUser.description,
+        },
+      };
+      const result = await serviceCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
+      res.send(result);
+    });
+
+    //inventory details
+    app.get("/inventory/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const service = await serviceCollection.findOne(query);
       res.send(service);
     });
 
-    // POST
-    app.post("/service", async (req, res) => {
-      const newService = req.body;
-      const result = await serviceCollection.insertOne(newService);
+    //load data updateitem API-----
+    app.get("/updateitem/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const service = await serviceCollection.findOne(query);
+      res.send(service);
+    });
+
+    // My ITEM API
+    app.get("/myitem", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const cursor = serviceCollection.find(query);
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
+    // add item
+    app.post("/additem", async (req, res) => {
+      const order = req.body;
+      const result = await serviceCollection.insertOne(order);
       res.send(result);
     });
 
-    // DELETE
-    app.delete("/service/:id", async (req, res) => {
+    // manage all itemm
+    app.get("/manageitem", async (req, res) => {
+      const query = {};
+      const cursor = serviceCollection.find(query);
+      const service = await cursor.toArray();
+      res.send(service);
+    });
+
+    //  manageinventorys all item
+    app.get("/manageinventorys", async (req, res) => {
+      const query = {};
+      const cursor = serviceCollection.find(query);
+      const service = await cursor.toArray();
+      res.send(service);
+    });
+
+    // DELETE manageinventory
+    app.delete("/manageinventorys/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await serviceCollection.deleteOne(query);
       res.send(result);
     });
 
-    // Order Collection API
-    app.get("/order", verifyJWT, async (req, res) => {
-      const decodedEmail = req.decoded.email;
-      const email = req.query.email;
-      if (email === decodedEmail) {
-        const query = { email: email };
-        const cursor = orderCollection.find(query);
-        const orders = await cursor.toArray();
-        res.send(orders);
-      } else {
-        res.status(403).send({ message: "forbidden access" });
-      }
+    // DELETE ITEM
+    app.delete("/myitem/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await serviceCollection.deleteOne(query);
+      res.send(result);
     });
 
-    app.post("/order", async (req, res) => {
-      const order = req.body;
-      const result = await orderCollection.insertOne(order);
+    // quantaty update
+    app.put("/inventory/:id", async (req, res) => {
+      const id = req.params.id;
+      const update = req.body;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updateDoc = {
+        $set: {
+          quantity: update.quantity,
+        },
+      };
+      const result = await serviceCollection.updateOne(
+        filter,
+        updateDoc,
+        options
+      );
       res.send(result);
     });
   } finally {
