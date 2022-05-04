@@ -26,6 +26,14 @@ async function run() {
 
 
 
+    // DELETE manageinventory
+    app.delete("/manageinventorys/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await serviceCollection.deleteOne(query);
+      res.send(result);
+    });
+
     // DELETE ITEM----
     app.delete("/myitem/:id", async (req, res) => {
       const id = req.params.id;
